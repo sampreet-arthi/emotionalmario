@@ -1,12 +1,11 @@
 import json
 import time
-import numpy as np
-from typing import Tuple
+from typing import Optional, Tuple
 
 import gym_super_mario_bros
+import numpy as np
 import torch
 from torch.utils.data import Dataset
-
 
 _STAGE_ORDER = [
     (1, 1),
@@ -22,8 +21,9 @@ _STAGE_ORDER = [
     (3, 2),
     (3, 3),
     (3, 4),
-    (4, 2)
+    (4, 2),
 ]
+
 
 def make_next_stage(world, stage, num):
 
@@ -51,24 +51,41 @@ class ExpertTransitionDataset(Dataset):
         session_path (str): path to data
         device (torch.device): device for torch tensors.
         render (bool, optional): Whether to render the data while loading. Defaults to False.
+        length (int, optional): Number of actions to consider.
+            Defaults to None which implies complete dataset to be loaded
     """
-    def __init__(self, session_path: str, device: torch.device, render: bool = False):
-    
+
+    def __init__(
+        self,
+        session_path: str,
+        device: torch.device,
+        render: bool = False,
+        length: Optional[int] = None,
+    ):
+
         self._len = 0
         self.obs = None
         self.a = None
-        self._load(session_path, device, render)
-    
-    def _load(self, session_path: str, device: torch.device, render: bool = False):
+        self._load(session_path, device, render, length)
+
+    def _load(
+        self,
+        session_path: str,
+        device: torch.device,
+        render: bool = False,
+        length: Optional[int] = None,
+    ):
         """Load with data
 
         Args:
             session_path (str): path to data
             device (torch.device): device for torch tensors.
             render (bool, optional): Whether to render the data while loading. Defaults to False.
+            length (int, optional): Number of actions to consider.
+                Defaults to None which implies complete dataset to be loaded
         """
 
-        print(f"Loading data from {session_path} ...", end=' ')
+        print(f"Loading data from {session_path} ...", end=" ")
 
         with open(session_path) as json_file:
             data = json.load(json_file)
@@ -89,11 +106,11 @@ class ExpertTransitionDataset(Dataset):
         observations = []
         actions = []
 
-        for action in data["obs"]:
-            
+        for i, action in enumerate(data["obs"]):
+
             if render:
                 env.render()
-            obs = torch.tensor(next_state.copy()).to(device)        
+            obs = torch.tensor(next_state.copy()).to(device).permute(2, 0, 1)
             next_state, reward, done, info = env.step(action)
             a = torch.tensor(action).to(device)
             observations.append(obs)
@@ -103,14 +120,17 @@ class ExpertTransitionDataset(Dataset):
 
             is_first = True
             frame_number += 1
-            
+
             if info["flag_get"]:
                 finish = True
+
+            if i >= length:
+                break
 
             if done:
                 done = False
                 end = time.time()
-                
+
                 if finish or steps >= 16000:
                     stage_num += 1
                     world, stage, new_world = make_next_stage(world, stage, stage_num)
@@ -120,7 +140,7 @@ class ExpertTransitionDataset(Dataset):
                     steps = 0
 
                 next_state = env.reset()
-        
+
         observations = torch.stack(observations)
         actions = torch.stack(actions)
         if self.obs is None or self.a is None:
@@ -131,7 +151,6 @@ class ExpertTransitionDataset(Dataset):
             self.a = torch.cat([self.a, actions])
 
         print(f"Complete!")
-        
 
     def __len__(self) -> int:
         """Get length of dataset"""
@@ -139,9 +158,8 @@ class ExpertTransitionDataset(Dataset):
 
     def __getitem__(self, index: int) -> Tuple[torch.Tensor, torch.Tensor]:
         """Get transition tuple at specific element"""
-        return torch
+        return self.obs[index], self.a[index]
 
-    
     def add(self, obs: torch.Tensor, a: torch.Tensor):
         """Add a transition tuple to dataset
 
@@ -158,7 +176,7 @@ class ExpertTransitionDataset(Dataset):
         else:
             self.a = a.unsqueeze(0)
         self._len += 1
-    
+
     def get_data(self, shuffle: bool = True):
         if shuffle is None:
             idx = list(np.random.permutation(self._len))

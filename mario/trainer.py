@@ -1,14 +1,14 @@
-from torch.utils.data.dataset import Dataset
-from torch.utils.data.dataloader import DataLoader
-from mario.expert import ExpertTransitionDataset
 from abc import ABC
 
 import numpy as np
 import torch
 import torch.nn.functional as F
+from torch.utils.data.dataloader import DataLoader
+from torch.utils.data.dataset import Dataset
 
 from genrl.deep.common.logger import Logger
 from genrl.deep.common.utils import safe_mean, set_seeds
+from mario.expert import ExpertTransitionDataset
 
 
 class Trainer(ABC):
@@ -155,7 +155,8 @@ class Trainer(ABC):
 
 
 class SupervisedTrainer(Trainer):
-    def __init__(self,
+    def __init__(
+        self,
         agent,
         env,
         dataset,
@@ -163,6 +164,7 @@ class SupervisedTrainer(Trainer):
         log_mode=["stdout"],
         render: bool = False,
         device="cpu",
+        length=None,
     ):
         """Trainer for behavior cloning of dataset into agent
 
@@ -175,21 +177,27 @@ class SupervisedTrainer(Trainer):
             render (bool, optional): Whether to render while loading dataset. 
                 Applicable only if path given for dataset. Defaults to False.
             device (str, optional): Device . Defaults to "cpu".
+            length (int, optional): Number of actions to consider.
+                Applicable only if path given for dataset.
+                Defaults to None which implies complete dataset to be loaded
         """
-        super(SupervisedTrainer, self).__init__(agent, env, log_mode, "epoch", device=device, render=render)
+        super(SupervisedTrainer, self).__init__(
+            agent, env, log_mode, "epoch", device=device, render=render
+        )
         self.agent = agent
 
         if isinstance(dataset, str):
-            self.dataset = ExpertTransitionDataset(dataset, device, render)
+            self.dataset = ExpertTransitionDataset(dataset, device, render, length)
         elif isinstance(dataset, Dataset):
             self.dataset = dataset
         else:
             raise TypeError
 
-        self.shuffle = shuffle        
+        self.shuffle = shuffle
 
-
-    def train(self, epochs: int = 1, lr: float = 1e-3, batch_size: int = 64, ):
+    def train(
+        self, epochs: int = 1, lr: float = 1e-3, batch_size: int = 64,
+    ):
         """Trains agent on dataset of expert transitions with MSE loss on action probabilities.
 
         Args:
@@ -204,7 +212,10 @@ class SupervisedTrainer(Trainer):
             epoch_loss = 0.0
             for obs, a in dataloader:
                 action_onehot = F.one_hot(a)
-                action_pred = self.self.agent.model(obs)
+                import pdb
+
+                pdb.set_trace()
+                action_pred = self.agent.model(obs)
                 loss = F.mse_loss(action_pred, action_onehot)
                 optim.zero_grad()
                 loss.backward()
@@ -212,9 +223,5 @@ class SupervisedTrainer(Trainer):
                 epoch_loss += loss.item()
             losses.append(epoch_loss)
             self.logger.write(
-                {
-                    "epoch": e,
-                    "loss": epoch_loss,
-                },
-                "epoch",
+                {"epoch": e, "loss": epoch_loss,}, "epoch",
             )

@@ -1,9 +1,9 @@
-from genrl.environments import GymWrapper, FrameStack
-
 import cv2
 import numpy as np
 from gym.core import Wrapper
 from gym.spaces import Box, Discrete
+
+from genrl.environments import FrameStack, GymWrapper
 
 
 class MarioPreprocessing(Wrapper):
@@ -23,17 +23,11 @@ class MarioPreprocessing(Wrapper):
 
         if grayscale:
             self.observation_space = Box(
-                low=0,
-                high=255,
-                shape=(screen_size, screen_size),
-                dtype=np.uint8,
+                low=0, high=255, shape=(screen_size, screen_size), dtype=np.uint8,
             )
         else:
             self.observation_space = Box(
-                low=0,
-                high=255,
-                shape=(screen_size, screen_size, 3),
-                dtype=np.uint8,
+                low=0, high=255, shape=(screen_size, screen_size, 3), dtype=np.uint8,
             )
 
         self._obs_buffer = [
@@ -74,9 +68,7 @@ class MarioPreprocessing(Wrapper):
         )
 
     def _get_obs(self):
-        np.maximum(
-            self._obs_buffer[0], self._obs_buffer[1], out=self._obs_buffer[0]
-        )
+        np.maximum(self._obs_buffer[0], self._obs_buffer[1], out=self._obs_buffer[0])
 
         obs = cv2.resize(
             self._obs_buffer[0],
