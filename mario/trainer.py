@@ -59,7 +59,7 @@ class Trainer(ABC):
         self.warmup_steps = warmup_steps
         self.update_interval = update_interval
         self.start_update = start_update
-        self.network_type = self.agent.network_type
+        self.network = self.agent.network
         self.buffer = self.agent.replay_buffer
 
         if seed is not None:
@@ -111,7 +111,7 @@ class Trainer(ABC):
 
         timesteps = 0
 
-        for episode in range(self.epochs):
+        for episode in range(1, self.epochs + 1):
             state = self.env.reset()
             for timestep in range(self.steps_per_epoch):
                 self.agent.update_params_before_select_action(timestep)
