@@ -113,8 +113,6 @@ class Trainer(ABC):
 
         for episode in range(self.epochs):
             state = self.env.reset()
-            self.rewards = []
-            self.env.episode_reward = 0
             for timestep in range(self.steps_per_epoch):
                 self.agent.update_params_before_select_action(timestep)
 
@@ -141,6 +139,7 @@ class Trainer(ABC):
                     )
 
                     state = self.env.reset()
+                    break
 
                 if (
                     timestep >= self.start_update

@@ -91,6 +91,16 @@ class MarioWrapper(Wrapper):
     def __init__(self, env):
         super(MarioWrapper, self).__init__(env)
 
+    def step(self, action):
+        next_state, reward, done, info = self.env.step(action)
+        self.episode_reward += reward
+        return next_state, reward, done, info
+
+    def reset(self):
+        state = self.env.reset()
+        self.episode_reward = 0
+        return state
+
     @property
     def obs_shape(self):
         if isinstance(self.observation_space, Discrete):
