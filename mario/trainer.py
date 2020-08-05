@@ -1,8 +1,11 @@
-import os
+from torch.utils.data.dataset import Dataset
+from torch.utils.data.dataloader import DataLoader
+from mario.expert import ExpertTransitionDataset
 from abc import ABC
 
 import numpy as np
 import torch
+import torch.nn.functional as F
 
 from genrl.deep.common.logger import Logger
 from genrl.deep.common.utils import safe_mean, set_seeds
@@ -149,3 +152,69 @@ class Trainer(ABC):
 
         self.env.close()
         self.logger.close()
+
+
+class SupervisedTrainer(Trainer):
+    def __init__(self,
+        agent,
+        env,
+        dataset,
+        shuffle: bool = True,
+        log_mode=["stdout"],
+        render: bool = False,
+        device="cpu",
+    ):
+        """Trainer for behavior cloning of dataset into agent
+
+        Args:
+            agent: Agent to train
+            env: Env from which daa has originated
+            dataset: Dataset to train on. Can be path to dataset or dataset object.
+            shuffle (bool): Whether to shuffle dataset. Defaults to true
+            log_mode (list, optional): Mode to log progress. Defaults to ["stdout"].
+            render (bool, optional): Whether to render while loading dataset. 
+                Applicable only if path given for dataset. Defaults to False.
+            device (str, optional): Device . Defaults to "cpu".
+        """
+        super(SupervisedTrainer, self).__init__(agent, env, log_mode, "epoch", device=device, render=render)
+        self.agent = agent
+
+        if isinstance(dataset, str):
+            self.dataset = ExpertTransitionDataset(dataset, device, render)
+        elif isinstance(dataset, Dataset):
+            self.dataset = dataset
+        else:
+            raise TypeError
+
+        self.shuffle = shuffle        
+
+
+    def train(self, epochs: int = 1, lr: float = 1e-3, batch_size: int = 64, ):
+        """Trains agent on dataset of expert transitions with MSE loss on action probabilities.
+
+        Args:
+            epochs (int): Epochs to train for. Defaults to 1
+            lr (float): Learning rate. Defaults to 0.001
+            batch_size (int, optional): Size of batch for gradient update. Defaults to 64.
+        """
+        dataloader = DataLoader(self.dataset, batch_size, self.shuffle)
+        optim = torch.optim.Adam(self.agent.model.parameters(), lr=lr)
+        losses = []
+        for e in range(epochs):
+            epoch_loss = 0.0
+            for obs, a in dataloader:
+                action_onehot = F.one_hot(a)
+                action_pred = self.self.agent.model(obs)
+                loss = F.mse_loss(action_pred, action_onehot)
+                optim.zero_grad()
+                loss.backward()
+                optim.step()
+                epoch_loss += loss.item()
+            losses.append(epoch_loss)
+            self.logger.write(
+                {
+                    "epoch": e,
+                    "loss": epoch_loss,
+                },
+                "epoch",
+            )
