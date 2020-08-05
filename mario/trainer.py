@@ -212,9 +212,6 @@ class SupervisedTrainer(Trainer):
             epoch_loss = 0.0
             for obs, a in dataloader:
                 action_onehot = F.one_hot(a)
-                import pdb
-
-                pdb.set_trace()
                 action_pred = self.agent.model(obs)
                 loss = F.mse_loss(action_pred, action_onehot)
                 optim.zero_grad()
