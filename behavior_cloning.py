@@ -11,7 +11,7 @@ from mario.wrapper import MarioEnv
 argument_parser = argparse.ArgumentParser(
     description="A script used to clone expert data into agent."
 )
-argument_parser.add_argument("-i", "--input-path", type=str)
+argument_parser.add_argument("-i", "--input-path", type=str, required=True)
 argument_parser.add_argument("-e", "--epochs", type=int, default=10)
 argument_parser.add_argument("--lr", type=float, default=1e-3)
 argument_parser.add_argument("-b", "--batch-size", type=int, default=64)
@@ -21,7 +21,7 @@ argument_parser.add_argument("--enable-cuda", action="store_true")
 args = argument_parser.parse_args()
 
 if args.enable_cuda:
-    device = "cuda"
+    device = "cpu"
 else:
     device = "cpu"
 

@@ -2,6 +2,7 @@ import json
 import time
 from typing import Optional, Tuple
 
+import cv2
 import gym_super_mario_bros
 import numpy as np
 import torch
@@ -44,12 +45,19 @@ def make_next_stage(world, stage, num):
     return world, stage, "SuperMarioBros-%s-%s-v0" % (str(world), str(stage))
 
 
-class ExpertTransitionDataset(Dataset):
-    """Dataset of expert moves
+class MarioExpertTransitions(Dataset):
+    """Dataset of expert moves on Mario
 
     Args:
         session_path (str): path to data
-        device (torch.device): device for torch tensors.
+        framestack (int): Number of frames to stack for each observation.
+            Defaults to 4
+        grayscale (bool): Whether to convert frames to grayscale.
+            Defaults to True
+        max_pool (bool): Whether to pool consecutive frames into one.
+            Defaults to True.
+        screen_size (int): Size of screen. Defaults to 84.
+        device (str): device for torch tensors. Defaults to cpu.
         render (bool, optional): Whether to render the data while loading. Defaults to False.
         length (int, optional): Number of actions to consider.
             Defaults to None which implies complete dataset to be loaded
@@ -58,32 +66,18 @@ class ExpertTransitionDataset(Dataset):
     def __init__(
         self,
         session_path: str,
-        device: torch.device,
+        framestack: int = 4,
+        grayscale: bool = True,
+        max_pool: bool = True,
+        screen_size: int = 84,
+        device: torch.device = "cpu",
         render: bool = False,
         length: Optional[int] = None,
     ):
-
         self._len = 0
         self.obs = None
         self.a = None
-        self._load(session_path, device, render, length)
-
-    def _load(
-        self,
-        session_path: str,
-        device: torch.device,
-        render: bool = False,
-        length: Optional[int] = None,
-    ):
-        """Load with data
-
-        Args:
-            session_path (str): path to data
-            device (torch.device): device for torch tensors.
-            render (bool, optional): Whether to render the data while loading. Defaults to False.
-            length (int, optional): Number of actions to consider.
-                Defaults to None which implies complete dataset to be loaded
-        """
+        self.screen_size = screen_size
 
         print(f"Loading data from {session_path} ...", end=" ")
 
@@ -103,19 +97,46 @@ class ExpertTransitionDataset(Dataset):
 
         steps = 0
 
-        observations = []
+        observations = [
+            torch.zeros(self.screen_size, self.screen_size, 3)
+            .to(device)
+            .to(torch.float)
+        ]
+        frame_stacked_obs = []
+        max_pooled_obs = []
+        max_pooled_framestaked_obs = []
+
         actions = []
 
         for i, action in enumerate(data["obs"]):
+            if i >= length:
+                break
 
             if render:
                 env.render()
-            obs = torch.tensor(next_state.copy()).to(device).permute(2, 0, 1)
+
+            next_state = cv2.resize(
+                next_state,
+                (self.screen_size, self.screen_size),
+                interpolation=cv2.INTER_AREA,
+            )
+            obs = torch.tensor(next_state.copy()).to(device).to(torch.float)
+            observations.append(obs)
             next_state, reward, done, info = env.step(action)
             a = torch.tensor(action).to(device)
-            observations.append(obs)
+
+            if max_pool:
+                max_pooled_obs.append(torch.max(observations[-1], observations[-2]))
+
+            if len(max_pooled_obs) >= framestack:
+                if max_pool:
+                    max_pooled_framestaked_obs.append(
+                        torch.stack(max_pooled_obs[-framestack:])
+                    )
+                else:
+                    frame_stacked_obs.append(torch.stack(observations[-framestack:]))
+
             actions.append(a)
-            self._len += 1
             steps += 1
 
             is_first = True
@@ -123,9 +144,6 @@ class ExpertTransitionDataset(Dataset):
 
             if info["flag_get"]:
                 finish = True
-
-            if i >= length:
-                break
 
             if done:
                 done = False
@@ -141,8 +159,15 @@ class ExpertTransitionDataset(Dataset):
 
                 next_state = env.reset()
 
-        observations = torch.stack(observations)
-        actions = torch.stack(actions)
+        if max_pool:
+            observations = torch.stack(max_pooled_framestaked_obs)
+        else:
+            observations = torch.stack(frame_stacked_obs[1:])
+
+        if grayscale:
+            factor = torch.tensor([0.299, 0.587, 0.114]).to(device)
+            observations = torch.matmul(observations, factor)
+
         if self.obs is None or self.a is None:
             self.obs = observations
             self.a = actions
@@ -154,7 +179,7 @@ class ExpertTransitionDataset(Dataset):
 
     def __len__(self) -> int:
         """Get length of dataset"""
-        return self._len
+        return len(self.obs)
 
     def __getitem__(self, index: int) -> Tuple[torch.Tensor, torch.Tensor]:
         """Get transition tuple at specific element"""

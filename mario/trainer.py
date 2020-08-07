@@ -7,8 +7,9 @@ from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import Dataset
 
 from genrl.deep.common.logger import Logger
-from genrl.deep.common.utils import safe_mean, set_seeds
-from mario.expert import ExpertTransitionDataset
+from genrl.deep.common.utils import set_seeds
+from mario.expert import MarioExpertTransitions
+from mario.utils import convert_raw_actions
 
 
 class Trainer(ABC):
@@ -118,7 +119,9 @@ class Trainer(ABC):
             state = self.env.reset()
             for timestep in range(self.steps_per_epoch):
                 self.agent.update_params_before_select_action(timestep)
+                import pdb
 
+                pdb.set_trace()
                 action = int(self.agent.select_action(state))
 
                 next_state, reward, done, info = self.env.step(action)
@@ -187,7 +190,14 @@ class SupervisedTrainer(Trainer):
         self.agent = agent
 
         if isinstance(dataset, str):
-            self.dataset = ExpertTransitionDataset(dataset, device, render, length)
+            self.dataset = MarioExpertTransitions(
+                session_path=dataset,
+                screen_size=84,
+                grayscale=True,
+                device=device,
+                render=render,
+                length=length,
+            )
         elif isinstance(dataset, Dataset):
             self.dataset = dataset
         else:
@@ -211,7 +221,7 @@ class SupervisedTrainer(Trainer):
         for e in range(epochs):
             epoch_loss = 0.0
             for obs, a in dataloader:
-                action_onehot = F.one_hot(a)
+                action_onehot = convert_raw_actions(a)
                 action_pred = self.agent.model(obs)
                 loss = F.mse_loss(action_pred, action_onehot)
                 optim.zero_grad()
