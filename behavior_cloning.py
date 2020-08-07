@@ -5,7 +5,7 @@ from gym_super_mario_bros.actions import SIMPLE_MOVEMENT
 from nes_py.wrappers import JoypadSpace
 
 from genrl import DQN
-from mario.trainer import SupervisedTrainer
+from mario.supervised import SupervisedTrainer
 from mario.wrapper import MarioEnv
 
 argument_parser = argparse.ArgumentParser(
