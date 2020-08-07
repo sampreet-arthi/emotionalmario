@@ -1,15 +1,17 @@
 from abc import ABC
+from typing import List
 
 import numpy as np
 import torch
 import torch.nn.functional as F
+from torch import embedding
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import Dataset
 
 from genrl.deep.common.logger import Logger
 from genrl.deep.common.utils import set_seeds
 from mario.expert import MarioExpertTransitions
-from mario.utils import convert_raw_actions
+from mario.utils import mask_raw_actions
 
 
 class Trainer(ABC):
@@ -163,6 +165,8 @@ class SupervisedTrainer(Trainer):
         agent,
         env,
         dataset,
+        possible_actions: List = None,
+        embedding: bool = False,
         shuffle: bool = True,
         log_mode=["stdout"],
         render: bool = False,
@@ -175,6 +179,10 @@ class SupervisedTrainer(Trainer):
             agent: Agent to train
             env: Env from which daa has originated
             dataset: Dataset to train on. Can be path to dataset or dataset object.
+            possible_actions (List, optional): All actions that are possible. 
+                Defaults to None which implies all actions are valid.
+            embedding (bool): Whether the agent is using an embedding for the
+                action space. Defaults to False.
             shuffle (bool): Whether to shuffle dataset. Defaults to true
             log_mode (list, optional): Mode to log progress. Defaults to ["stdout"].
             render (bool, optional): Whether to render while loading dataset. 
@@ -203,6 +211,8 @@ class SupervisedTrainer(Trainer):
         else:
             raise TypeError
 
+        self.possible_actions = possible_actions
+        self.embedding = embedding
         self.shuffle = shuffle
 
     def train(
@@ -221,9 +231,22 @@ class SupervisedTrainer(Trainer):
         for e in range(epochs):
             epoch_loss = 0.0
             for obs, a in dataloader:
-                action_onehot = convert_raw_actions(a)
-                action_pred = self.agent.model(obs)
-                loss = F.mse_loss(action_pred, action_onehot)
+                if self.possible_actions is not None:
+                    masked_actions = mask_raw_actions(a, self.possible_actions)
+                    target_actions = F.one_hot(
+                        masked_actions, num_classes=len(self.possible_actions)
+                    )
+                else:
+                    target_actions = F.one_hot(a, num_classes=len(256))
+
+                if self.embedding:
+                    pred_embedding = self.agent.embed(obs)
+                    target_embedding = self.agent.embed_actions(target_actions)
+                    loss = F.mse_loss(pred_embedding, target_embedding)
+                else:
+                    action_pred = self.agent.model(obs)
+                    loss = F.mse_loss(action_pred, target_actions)
+
                 optim.zero_grad()
                 loss.backward()
                 optim.step()

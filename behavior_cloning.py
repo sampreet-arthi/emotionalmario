@@ -31,6 +31,12 @@ env = MarioEnv(env)
 agent = DQN("cnn", env, replay_size=100000, epsilon_decay=100000)
 
 trainer = SupervisedTrainer(
-    agent, env, args.input_path, render=args.render, device=device, length=args.length
+    agent=agent,
+    env=env,
+    dataset=args.input_path,
+    possible_actions=SIMPLE_MOVEMENT,
+    render=args.render,
+    device=device,
+    length=args.length,
 )
 trainer.train(epochs=args.epochs, lr=args.lr, batch_size=args.batch_size)
