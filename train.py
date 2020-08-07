@@ -6,10 +6,12 @@ from nes_py.wrappers import JoypadSpace
 
 from genrl.deep.agents.dqn import (DQN, DoubleDQN, DuelingDQN,
                                    PrioritizedReplayDQN)
-from genrl.agents import A2C, PPO1
+from genrl.deep.agents import PPO1, A2C
 
+from mario.agents import MarioPPO
 from mario.trainer import MarioTrainer
 from mario.wrapper import MarioEnv
+from mario.buffers import MarioRollout
 
 
 if __name__ == "__main__":
@@ -22,7 +24,7 @@ if __name__ == "__main__":
     argument_parser.add_argument("--lr-policy", type=float, default=3e-4)
     argument_parser.add_argument("--lr-value", type=float, default=1e-3)
     argument_parser.add_argument("-b", "--batch-size", type=int, default=64)
-    argument_parser.add_argument("-o", "--off-policy", action="store_false")
+    argument_parser.add_argument("--epsilon-decay", type=float, default=10000)
     argument_parser.add_argument("--replay-size", type=int, default=10000)
     argument_parser.add_argument("--rollout-size", type=int, default=2048)
     argument_parser.add_argument("-t", "--max_ep_len", type=int, default=5000)
@@ -40,6 +42,7 @@ if __name__ == "__main__":
     env = MarioEnv(env)
 
     if "dqn" in args.agent:
+        off_policy = True
         if "double" in args.agent or args.agent == "ddqn":
             dqn_class = DoubleDQN
         elif "prioritized" in args.agent:
@@ -57,8 +60,9 @@ if __name__ == "__main__":
             device=device,
         )
     else:
+        off_policy = False
         if args.agent == "ppo1" or args.agent == "ppo":
-            agent_class = PPO1
+            agent_class = MarioPPO
         elif args.agent == "a2c":
             agent_class = A2C
         else:
@@ -66,6 +70,7 @@ if __name__ == "__main__":
         agent = agent_class(
             "cnn",
             env,
+            buffer_class=MarioRollout,
             rollout_size=args.rollout_size,
             batch_size=args.batch_size,
             lr_policy=args.lr_policy,
@@ -78,10 +83,10 @@ if __name__ == "__main__":
         env,
         log_interval=args.log_interval,
         epochs=args.epochs,
-        off_policy=args.off_policy,
+        off_policy=off_policy,
         render=args.render,
         max_ep_len=args.max_ep_len,
-        evaluate_episodes=25,
+        save_interval=10,
+        save_model="checkpoints"
     )
     trainer.train()
-    trainer.evaluate()

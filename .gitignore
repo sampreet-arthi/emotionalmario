@@ -130,3 +130,6 @@ dmypy.json
 
 # vscode config
 .vscode/
+
+# Checkpoint files
+*.pt

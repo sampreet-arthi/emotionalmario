@@ -5,7 +5,7 @@ import torch
 
 from genrl.deep.common.logger import Logger
 from genrl.deep.common.trainer import Trainer
-from genrl.deep.common.utils import set_seeds
+from genrl.deep.common.utils import set_seeds, safe_mean
 
 
 class MarioTrainer(Trainer):
@@ -14,7 +14,7 @@ class MarioTrainer(Trainer):
 
         self.start_update = kwargs["start_update"] if "start_update" in kwargs else 1000
         self.update_interval = (
-            kwargs["update_interval"] if "update_interval" in kwargs else 60
+           kwargs["update_interval"] if "update_interval" in kwargs else 60
         )
 
     def evaluate(self, render=True) -> None:
@@ -43,8 +43,8 @@ class MarioTrainer(Trainer):
         print(
             "Evaluated for {} episodes, Mean Reward: {}, Std Deviation for the Reward: {}".format(
                 self.evaluate_episodes,
-                np.mean(episode_rewards),
-                np.std(episode_rewards),
+                np.mean(self.eval_rewards),
+                np.std(self.eval_rewards),
             )
         )
 
@@ -53,7 +53,7 @@ class MarioTrainer(Trainer):
             self.load()
 
         print("Training starting...")
-        print("Agent: {}, Epochs: {}".format(self.agent.__class__.__name__, self.epochs))
+        print("Agent: {}, Env: {}, Epochs: {}".format(self.agent.__class__.__name__, self.env.unwrapped.spec.id, self.epochs))
         if self.off_policy:
             self.off_policy_train()
         else:
@@ -80,7 +80,7 @@ class MarioTrainer(Trainer):
                 self.buffer.push((state, action, reward, next_state, done))
                 state = next_state.copy()
 
-                if done or timestep == self.max_ep_len:
+                if done or timestep == self.max_ep_len - 1:
                     timesteps += timestep
                     self.rewards.append(self.env.episode_reward)
                     if episode % self.log_interval == 0:
@@ -119,7 +119,7 @@ class MarioTrainer(Trainer):
 
             self.agent.update_policy()
 
-            if epoch % self.log_interval == 0:
+            if episode % self.log_interval == 0:
                 self.logger.write(
                     {
                         "timestep": episode * self.agent.rollout_size,

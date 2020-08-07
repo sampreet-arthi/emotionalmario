@@ -9,9 +9,9 @@ class MarioRollout(RolloutBuffer):
     def __init__(
         self, buffer_size, env, device="cpu", gae_lambda=1, gamma=0.99,
     ):
-        super(RolloutBuffer, self).__init__(buffer_size, env, device, gae_lambda, gamma)
+        super(MarioRollout, self).__init__(buffer_size, env, device, gae_lambda, gamma)
 
-    def reset(self) -> None:
+    def reset(self):
         self.observations = np.zeros(
             (self.buffer_size,) + self.env.obs_shape, dtype=np.float32
         )
@@ -29,22 +29,18 @@ class MarioRollout(RolloutBuffer):
         self.pos = 0
         self.full = False
 
-    def get(
-        self, batch_size: Optional[int] = None
-    ) -> Generator[RolloutBufferSamples, None, None]:
+    def get(self, batch_size=None):
         assert self.full, ""
         indices = np.random.permutation(self.buffer_size)
         # Prepare the data
         if not self.generator_ready:
-            for tensor in [
-                "observations",
-                "actions",
-                "values",
-                "log_probs",
-                "advantages",
-                "returns",
-            ]:
-                self.__dict__[tensor] = self.swap_and_flatten(self.__dict__[tensor])
+            # for tensor in [
+            #     "observations",
+            #     "advantages",
+            #     "returns",
+            # ]:
+            #     print(tensor)
+            #     self.__dict__[tensor] = self.swap_and_flatten(self.__dict__[tensor])
             self.generator_ready = True
 
         # Return everything, don't create minibatches
