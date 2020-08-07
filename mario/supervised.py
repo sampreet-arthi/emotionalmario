@@ -50,7 +50,7 @@ class SupervisedTrainer(Trainer):
 
         if isinstance(dataset, str):
             self.dataset = MarioExpertTransitions(
-                session_path=dataset,
+                data_path=dataset,
                 screen_size=84,
                 grayscale=True,
                 device=device,

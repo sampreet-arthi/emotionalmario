@@ -1,12 +1,15 @@
 import argparse
+from pathlib import Path
 
 import gym_super_mario_bros
 from gym_super_mario_bros.actions import SIMPLE_MOVEMENT
 from nes_py.wrappers import JoypadSpace
 
 from genrl import DQN
+from torch.utils.data import dataset
 from mario.supervised import SupervisedTrainer
 from mario.wrapper import MarioEnv
+from mario.expert import MarioExpertTransitions
 
 argument_parser = argparse.ArgumentParser(
     description="A script used to clone expert data into agent."

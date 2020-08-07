@@ -1,11 +1,13 @@
 import json
 import time
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
+from pathlib import Path
 
 import cv2
 import gym_super_mario_bros
 import numpy as np
 import torch
+from torch import le
 from torch.utils.data import Dataset
 
 _STAGE_ORDER = [
@@ -49,7 +51,10 @@ class MarioExpertTransitions(Dataset):
     """Dataset of expert moves on Mario
 
     Args:
-        session_path (str): path to data
+        data_path (str, Optional): path to data. Initialises empty
+            dataset if not specified.
+        sessions (List[int]): list of sessions to consider.
+            Defaults to list(range(10)).
         framestack (int): Number of frames to stack for each observation.
             Defaults to 4
         grayscale (bool): Whether to convert frames to grayscale.
@@ -58,26 +63,53 @@ class MarioExpertTransitions(Dataset):
             Defaults to True.
         screen_size (int): Size of screen. Defaults to 84.
         device (str): device for torch tensors. Defaults to cpu.
-        render (bool, optional): Whether to render the data while loading. Defaults to False.
+        render (bool, optional): Whether to render the data while loading
+            Defaults to False.
         length (int, optional): Number of actions to consider.
             Defaults to None which implies complete dataset to be loaded
     """
 
     def __init__(
         self,
-        session_path: str,
+        data_path: Optional[str] = None,
+        sessions: Optional[List[int]] = list(range(10)),
         framestack: int = 4,
         grayscale: bool = True,
         max_pool: bool = True,
         screen_size: int = 84,
-        device: torch.device = "cpu",
+        device: str = "cpu",
         render: bool = False,
-        length: Optional[int] = None,
+        length: Optional[int] = None
     ):
-        self._len = 0
+        self.framestack = framestack
+        self.grayscale = grayscale
+        self.max_pool = max_pool
+        self.screen_size = screen_size
+        self.device = device
+
         self.obs = None
         self.a = None
-        self.screen_size = screen_size
+
+        if data_path is not None:
+            path = Path(data_path)
+            if path.suffix == ".json":
+                self.load_single_session(data_path, render, length)
+            elif path.is_dir():
+                self.load_multiple_sessions(data_path, sessions, render, length)
+            else:
+                raise ValueError("Invalid data path specified")
+
+
+    def load_single_session(self, session_path: str, render: bool = False, length: int = None):
+        """Load a session into the dataset
+
+        Args:
+            session_path (str): path to data
+            render (bool, optional): Whether to render the data while loading.
+                Defaults to False.
+            length (int, optional): Number of actions to consider.
+                Defaults to None which implies complete dataset to be loaded
+        """
 
         print(f"Loading data from {session_path} ...", end=" ")
 
@@ -99,7 +131,7 @@ class MarioExpertTransitions(Dataset):
 
         observations = [
             torch.zeros(self.screen_size, self.screen_size, 3)
-            .to(device)
+            .to(self.device)
             .to(torch.float)
         ]
         frame_stacked_obs = []
@@ -120,21 +152,21 @@ class MarioExpertTransitions(Dataset):
                 (self.screen_size, self.screen_size),
                 interpolation=cv2.INTER_AREA,
             )
-            obs = torch.tensor(next_state.copy()).to(device).to(torch.float)
+            obs = torch.tensor(next_state.copy()).to(self.device).to(torch.float)
             observations.append(obs)
             next_state, reward, done, info = env.step(action)
-            a = torch.tensor(action).to(device)
+            a = torch.tensor(action).to(self.device)
 
-            if max_pool:
+            if self.max_pool:
                 max_pooled_obs.append(torch.max(observations[-1], observations[-2]))
 
-            if len(max_pooled_obs) >= framestack:
-                if max_pool:
+            if len(max_pooled_obs) >= self.framestack:
+                if self.max_pool:
                     max_pooled_framestaked_obs.append(
-                        torch.stack(max_pooled_obs[-framestack:])
+                        torch.stack(max_pooled_obs[-self.framestack:])
                     )
                 else:
-                    frame_stacked_obs.append(torch.stack(observations[-framestack:]))
+                    frame_stacked_obs.append(torch.stack(observations[-self.framestack:]))
 
             actions.append(a)
             steps += 1
@@ -159,13 +191,15 @@ class MarioExpertTransitions(Dataset):
 
                 next_state = env.reset()
 
-        if max_pool:
+        actions = torch.stack(actions)
+
+        if self.max_pool:
             observations = torch.stack(max_pooled_framestaked_obs)
         else:
             observations = torch.stack(frame_stacked_obs[1:])
 
-        if grayscale:
-            factor = torch.tensor([0.299, 0.587, 0.114]).to(device)
+        if self.grayscale:
+            factor = torch.tensor([0.299, 0.587, 0.114]).to(self.device)
             observations = torch.matmul(observations, factor)
 
         if self.obs is None or self.a is None:
@@ -176,6 +210,25 @@ class MarioExpertTransitions(Dataset):
             self.a = torch.cat([self.a, actions])
 
         print(f"Complete!")
+
+    def load_multiple_sessions(self, data_dir: str, sessions: List[int] = list(range(10)), render: bool = False, length: Optional[int] = None):
+        """Load multiple sessions into the dataset
+
+        Args:
+            session_path (str): Path to directory of participants data
+            sessions (List[int]): list of sessions to consider.
+                Defaults to list(range(10)).
+            render (bool, optional): Whether to render the data while loading.
+                Defaults to False.
+            length (int, optional): Number of actions to consider.
+                Defaults to None which implies complete dataset to be loaded
+        """
+        data_dir = Path(data_dir)
+        for i in sessions:
+            session_path = data_dir.joinpath(f"participant_{i}/participant_{i}_session.json")
+            if not session_path.exists():
+                raise FileNotFoundError(f"{session_path.absolute()} does not exist")
+            self.load_single_session(session_path, render, length)
 
     def __len__(self) -> int:
         """Get length of dataset"""
