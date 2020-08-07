@@ -1,8 +1,10 @@
 from nes_py.wrappers import JoypadSpace
 import gym_super_mario_bros
 from gym_super_mario_bros.actions import SIMPLE_MOVEMENT
-from mario.wrapper import MarioEnv
+
 from genrl import DQN
+
+from mario.wrapper import MarioEnv
 from mario.trainer import Trainer
 
 
