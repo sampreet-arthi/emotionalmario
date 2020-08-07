@@ -8,7 +8,7 @@ from genrl.environments import FrameStack, GymWrapper
 
 class MarioPreprocessing(Wrapper):
     def __init__(
-        self, env, frameskip, grayscale, screen_size,
+        self, env, frameskip=4, grayscale=True, screen_size=84,
     ):
         super(MarioPreprocessing, self).__init__(env)
 
@@ -112,8 +112,7 @@ class MarioWrapper(Wrapper):
 
 def MarioEnv(env):
     env = GymWrapper(env)
-    env = MarioPreprocessing(env, 4, True, 84)
+    env = MarioPreprocessing(env)
     env = FrameStack(env)
     env = MarioWrapper(env)
-
     return env

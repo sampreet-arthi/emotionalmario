@@ -1,7 +1,7 @@
 import json
 import time
-from typing import Optional, Tuple, List
 from pathlib import Path
+from typing import List, Optional, Tuple
 
 import cv2
 import gym_super_mario_bros
@@ -79,7 +79,7 @@ class MarioExpertTransitions(Dataset):
         screen_size: int = 84,
         device: str = "cpu",
         render: bool = False,
-        length: Optional[int] = None
+        length: Optional[int] = None,
     ):
         self.framestack = framestack
         self.grayscale = grayscale
@@ -99,8 +99,9 @@ class MarioExpertTransitions(Dataset):
             else:
                 raise ValueError("Invalid data path specified")
 
-
-    def load_single_session(self, session_path: str, render: bool = False, length: int = None):
+    def load_single_session(
+        self, session_path: str, render: bool = False, length: int = None
+    ):
         """Load a session into the dataset
 
         Args:
@@ -163,10 +164,12 @@ class MarioExpertTransitions(Dataset):
             if len(max_pooled_obs) >= self.framestack:
                 if self.max_pool:
                     max_pooled_framestaked_obs.append(
-                        torch.stack(max_pooled_obs[-self.framestack:])
+                        torch.stack(max_pooled_obs[-self.framestack :])
                     )
                 else:
-                    frame_stacked_obs.append(torch.stack(observations[-self.framestack:]))
+                    frame_stacked_obs.append(
+                        torch.stack(observations[-self.framestack :])
+                    )
 
             actions.append(a)
             steps += 1
@@ -211,7 +214,13 @@ class MarioExpertTransitions(Dataset):
 
         print(f"Complete!")
 
-    def load_multiple_sessions(self, data_dir: str, sessions: List[int] = list(range(10)), render: bool = False, length: Optional[int] = None):
+    def load_multiple_sessions(
+        self,
+        data_dir: str,
+        sessions: List[int] = list(range(10)),
+        render: bool = False,
+        length: Optional[int] = None,
+    ):
         """Load multiple sessions into the dataset
 
         Args:
@@ -225,7 +234,9 @@ class MarioExpertTransitions(Dataset):
         """
         data_dir = Path(data_dir)
         for i in sessions:
-            session_path = data_dir.joinpath(f"participant_{i}/participant_{i}_session.json")
+            session_path = data_dir.joinpath(
+                f"participant_{i}/participant_{i}_session.json"
+            )
             if not session_path.exists():
                 raise FileNotFoundError(f"{session_path.absolute()} does not exist")
             self.load_single_session(session_path, render, length)

@@ -1,9 +1,9 @@
 from typing import List
 
 import torch
+import torch.nn.functional as F
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import Dataset
-import torch.nn.functional as F
 
 from mario.expert import MarioExpertTransitions
 from mario.trainer import Trainer
@@ -88,7 +88,9 @@ class SupervisedTrainer(Trainer):
                         masked_actions, num_classes=len(self.possible_actions)
                     ).to(torch.float32)
                 else:
-                    target_actions = F.one_hot(a, num_classes=len(256)).to(torch.float32)
+                    target_actions = F.one_hot(a, num_classes=len(256)).to(
+                        torch.float32
+                    )
 
                 if self.embedding:
                     pred_embedding = self.agent.embed(obs)
