@@ -16,23 +16,12 @@ from mario.buffers import MarioRollout
 
 if __name__ == "__main__":
     argument_parser = argparse.ArgumentParser(
-        description="A script used to train RL agents on Super Mario Bros."
+        description="A script used to clone expert data into agent."
     )
     argument_parser.add_argument("-a", "--agent", type=str, default="dqn")
-    argument_parser.add_argument("-e", "--epochs", type=int, default=100)
-    argument_parser.add_argument("-l", "--log-interval", type=int, default=5)
-    argument_parser.add_argument("-b", "--batch-size", type=int, default=64)
-    argument_parser.add_argument("-t", "--max_ep_len", type=int, default=5000)
+    argument_parser.add_argument("-e", "--evaluate-episodes", type=int, default=20)
+    argument_parser.add_argument("-t", "--max_ep_len", type=int, default=999999)
     argument_parser.add_argument("-r", "--render", action="store_true")
-    argument_parser.add_argument("-p", "--load-model", type=str, default=None)
-    argument_parser.add_argument("-x", "--evaluate", action="store_true")
-    argument_parser.add_argument("--eval-episodes", type=int, default=20)
-    argument_parser.add_argument("--lr-policy", type=float, default=3e-4)
-    argument_parser.add_argument("--lr-value", type=float, default=1e-3)
-    argument_parser.add_argument("--epsilon-decay", type=float, default=200000)
-    argument_parser.add_argument("--replay-size", type=int, default=100000)
-    argument_parser.add_argument("--rollout-size", type=int, default=2048)
-    argument_parser.add_argument("--enable-cuda", action="store_true")
     args = argument_parser.parse_args()
 
     if args.enable_cuda:
@@ -90,14 +79,9 @@ if __name__ == "__main__":
         off_policy=off_policy,
         render=args.render,
         max_ep_len=args.max_ep_len,
-        evaluate_episodes=args.eval_episodes,
-        load_model=args.load_model,
         save_interval=10,
+        load_model=
         save_model="checkpoints"
     )
 
-    if args.evaluate:
-        trainer.evaluate()
-    else:
-        trainer.train()
-
+    trainer.evaluate()

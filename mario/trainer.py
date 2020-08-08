@@ -22,7 +22,7 @@ class MarioTrainer(Trainer):
 
         for episode in range(self.evaluate_episodes):
             state = self.env.reset()
-            for timestep in range(self.env.max_ep_len):
+            for timestep in range(self.max_ep_len):
                 if self.off_policy:
                     action = self.agent.select_action(state, deterministic=True)
                 else:
@@ -36,7 +36,7 @@ class MarioTrainer(Trainer):
 
                 state = next_state
 
-                if done:
+                if done or timestep == self.max_ep_len - 1:
                     self.eval_rewards.append(self.env.episode_reward)
                     break
 
@@ -53,7 +53,7 @@ class MarioTrainer(Trainer):
             self.load()
 
         print("Training starting...")
-        print("Agent: {}, Env: {}, Epochs: {}".format(self.agent.__class__.__name__, self.env.unwrapped.spec.id, self.epochs))
+        print("Agent: {}, Env: {}, Epochs: {}, Device: {}".format(self.agent.__class__.__name__, self.env.unwrapped.spec.id, self.epochs, self.device))
         if self.off_policy:
             self.off_policy_train()
         else:
@@ -103,7 +103,7 @@ class MarioTrainer(Trainer):
                     self.agent.update_params(self.update_interval)
 
             if self.save_interval != 0 and episode % self.save_interval == 0:
-                self.save(episode * self.agent.batch_size)
+                self.save(timesteps)
 
         self.env.close()
         self.logger.close()
