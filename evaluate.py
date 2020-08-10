@@ -20,6 +20,7 @@ if __name__ == "__main__":
     )
     argument_parser.add_argument("-a", "--agent", type=str, default="dqn")
     argument_parser.add_argument("-e", "--evaluate-episodes", type=int, default=20)
+    argument_parser.add_argument("-p", "--path", type=str, default=None)
     argument_parser.add_argument("-t", "--max_ep_len", type=int, default=999999)
     argument_parser.add_argument("-r", "--render", action="store_true")
     args = argument_parser.parse_args()
@@ -80,7 +81,7 @@ if __name__ == "__main__":
         render=args.render,
         max_ep_len=args.max_ep_len,
         save_interval=10,
-        load_model=
+        load_model=args.path,
         save_model="checkpoints"
     )
 
