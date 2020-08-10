@@ -9,7 +9,7 @@ from genrl.deep.agents.dqn import (DQN, DoubleDQN, DuelingDQN,
 from genrl.deep.agents import PPO1, A2C
 
 from mario.agents import MarioPPO
-from mario.trainer import MarioTrainer
+from mario.mdp_trainer import MDPTrainer
 from mario.wrapper import MarioEnv
 from mario.buffers import MarioRollout
 
@@ -82,7 +82,7 @@ if __name__ == "__main__":
             device=device,
         )
 
-    trainer = MarioTrainer(
+    trainer = MDPTrainer(
         agent,
         env,
         log_interval=args.log_interval,
