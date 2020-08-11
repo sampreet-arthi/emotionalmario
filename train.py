@@ -4,8 +4,7 @@ import gym_super_mario_bros
 from gym_super_mario_bros.actions import SIMPLE_MOVEMENT
 from nes_py.wrappers import JoypadSpace
 
-from genrl.deep.agents.dqn import (DQN, DoubleDQN, DuelingDQN,
-                                   PrioritizedReplayDQN)
+from genrl.deep.agents.dqn import DQN, DoubleDQN, DuelingDQN, PrioritizedReplayDQN
 from genrl.deep.agents import PPO1, A2C
 
 from mario.agents import MarioPPO
@@ -93,11 +92,10 @@ if __name__ == "__main__":
         evaluate_episodes=args.eval_episodes,
         load_model=args.load_model,
         save_interval=10,
-        save_model="checkpoints"
+        save_model="checkpoints",
     )
 
     if args.evaluate:
         trainer.evaluate()
     else:
         trainer.train()
-

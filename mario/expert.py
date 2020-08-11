@@ -24,8 +24,9 @@ _STAGE_ORDER = [
     (3, 2),
     (3, 3),
     (3, 4),
-    (4, 2)
+    (4, 2),
 ]
+
 
 def make_next_stage(world, stage, num):
 
@@ -44,6 +45,7 @@ def make_next_stage(world, stage, num):
             stage += 1
 
     return world, stage, "SuperMarioBros-%s-%s-v0" % (str(world), str(stage))
+
 
 def process_single_session(session_path, output_path=None, render=False, length=None):
 
@@ -71,11 +73,11 @@ def process_single_session(session_path, output_path=None, render=False, length=
 
         if length is not None:
             if i >= length:
-                    break
-        
+                break
+
         if render:
             env.render()
-        
+
         next_state, _, done, info = env.step(action)
         steps += 1
 
@@ -86,13 +88,13 @@ def process_single_session(session_path, output_path=None, render=False, length=
 
         finish = False
         frame_number += 1
-        
+
         if info["flag_get"]:
             finish = True
 
         if done:
             done = False
-            
+
             if finish or steps >= 16000:
                 stage_num += 1
                 world, stage, new_world = make_next_stage(world, stage, stage_num)
@@ -102,6 +104,7 @@ def process_single_session(session_path, output_path=None, render=False, length=
                 steps = 0
 
             next_state = env.reset()
+
 
 def process_multiple_sessions(
     data_dir: str,
@@ -131,6 +134,7 @@ def process_multiple_sessions(
         if not session_path.exists():
             raise FileNotFoundError(f"{session_path.absolute()} does not exist")
         process_single_session(session_path, output_path, render, length)
+
 
 class MarioExpertTransitions(Dataset):
     """Dataset of expert moves on Mario
@@ -195,9 +199,7 @@ class MarioExpertTransitions(Dataset):
                 continue
             self._load_single_session(session_path, length)
 
-    def _load_single_session(
-        self, session_path: str, length: int = None
-    ):
+    def _load_single_session(self, session_path: str, length: int = None):
         """Load a session into the dataset
 
         Args:
@@ -227,16 +229,14 @@ class MarioExpertTransitions(Dataset):
         for i, action in enumerate(data["obs"]):
             if length is not None:
                 if i >= length:
-                        break
-            
+                    break
+
             a = torch.tensor(action).to(self.device)
             actions.append(a)
-            
+
             obs = cv2.imread(str(session_path.joinpath(f"frames/frame_{i}.png")))
             obs = cv2.resize(
-                obs,
-                (self.screen_size, self.screen_size),
-                interpolation=cv2.INTER_AREA,
+                obs, (self.screen_size, self.screen_size), interpolation=cv2.INTER_AREA,
             )
             obs = torch.tensor(obs.copy()).to(self.device).to(torch.float)
             observations.append(obs)

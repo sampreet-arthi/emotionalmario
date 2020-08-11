@@ -2,13 +2,14 @@ from genrl.deep.common.utils import safe_mean
 
 from mario.trainer import MarioTrainer
 
+
 class MDPTrainer(MarioTrainer):
     def __init__(self, *args, **kwargs):
         super(MDPTrainer, self).__init__(*args, **kwargs)
 
         self.start_update = kwargs["start_update"] if "start_update" in kwargs else 1000
         self.update_interval = (
-           kwargs["update_interval"] if "update_interval" in kwargs else 60
+            kwargs["update_interval"] if "update_interval" in kwargs else 60
         )
 
     def train(self):
@@ -16,7 +17,14 @@ class MDPTrainer(MarioTrainer):
             self.load()
 
         print("Training starting...")
-        print("Agent: {}, Env: {}, Epochs: {}, Device: {}".format(self.agent.__class__.__name__, self.env.unwrapped.spec.id, self.epochs, self.device))
+        print(
+            "Agent: {}, Env: {}, Epochs: {}, Device: {}".format(
+                self.agent.__class__.__name__,
+                self.env.unwrapped.spec.id,
+                self.epochs,
+                self.device,
+            )
+        )
         if self.off_policy:
             self.off_policy_train()
         else:

@@ -2,6 +2,7 @@ import numpy as np
 
 from genrl.deep.common.trainer import Trainer
 
+
 class MarioTrainer(Trainer):
     def __init__(self, *args, **kwargs):
         super(MarioTrainer, self).__init__(*args, **kwargs)
