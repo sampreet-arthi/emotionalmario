@@ -42,7 +42,7 @@ trainer = SupervisedTrainer(
     device=device,
     length=args.length,
     off_policy=True,
-    evaluate_episodes=1
+    evaluate_episodes=1,
 )
 trainer.train(epochs=args.epochs, lr=args.lr, batch_size=args.batch_size)
 trainer.evaluate(render=True)
