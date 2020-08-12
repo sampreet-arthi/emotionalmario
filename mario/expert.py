@@ -1,13 +1,13 @@
 import json
-import time
 from pathlib import Path
 from typing import List, Optional, Tuple
+import shutil
+import warnings
 
 import cv2
 import gym_super_mario_bros
 import numpy as np
 import torch
-from torch import le
 from torch.utils.data import Dataset
 
 _STAGE_ORDER = [
@@ -47,12 +47,100 @@ def make_next_stage(world, stage, num):
     return world, stage, "SuperMarioBros-%s-%s-v0" % (str(world), str(stage))
 
 
+def process_single_session(session_path, output_path=None, render=False, length=None):
+
+    with open(session_path) as json_file:
+        data = json.load(json_file)
+
+    if output_path is not None:
+        output_path = Path(output_path)
+        output_path.mkdir(exist_ok=True, parents=True)
+        shutil.copyfile(session_path, output_path.joinpath("data.json"))
+        output_path.joinpath("frames").mkdir(exist_ok=True)
+
+    first_world = "SuperMarioBros-1-1-v0"
+    env = gym_super_mario_bros.make(first_world)
+
+    next_state = env.reset()
+
+    world = 1
+    stage = 1
+    stage_num = 0
+    frame_number = 0
+    steps = 0
+
+    for i, action in enumerate(data["obs"]):
+
+        if length is not None:
+            if i >= length:
+                break
+
+        if render:
+            env.render()
+
+        next_state, _, done, info = env.step(action)
+        steps += 1
+
+        if output_path is not None:
+            cvt_state = cv2.cvtColor(next_state, cv2.COLOR_BGR2RGB)
+            impath = str(output_path.joinpath(f"frames/frame_{frame_number}.png"))
+            cv2.imwrite(impath, cvt_state)
+
+        finish = False
+        frame_number += 1
+
+        if info["flag_get"]:
+            finish = True
+
+        if done:
+            done = False
+
+            if finish or steps >= 16000:
+                stage_num += 1
+                world, stage, new_world = make_next_stage(world, stage, stage_num)
+                env.close()
+                env = gym_super_mario_bros.make(new_world)
+                finish = False
+                steps = 0
+
+            next_state = env.reset()
+
+
+def process_multiple_sessions(
+    data_dir: str,
+    output_path: str,
+    sessions: List[int] = list(range(10)),
+    render: bool = False,
+    length: Optional[int] = None,
+):
+    """Load multiple sessions into the dataset
+
+    Args:
+        data_dir (str): Path to directory of participants data
+        output_path (str): Path to output directory
+        sessions (List[int]): list of sessions to consider.
+            Defaults to list(range(10)).
+        render (bool, optional): Whether to render the data while loading.
+            Defaults to False.
+        length (int, optional): Number of actions to consider.
+            Defaults to None which implies complete dataset to be loaded
+    """
+    data_dir = Path(data_dir)
+    for i in sessions:
+        session_path = data_dir.joinpath(
+            f"participant_{i}/participant_{i}_session.json"
+        )
+        output_path = Path(output_path).joinpath(f"participant_{i}")
+        if not session_path.exists():
+            raise FileNotFoundError(f"{session_path.absolute()} does not exist")
+        process_single_session(session_path, output_path, render, length)
+
+
 class MarioExpertTransitions(Dataset):
     """Dataset of expert moves on Mario
 
     Args:
-        data_path (str, Optional): path to data. Initialises empty
-            dataset if not specified.
+        data_path (str): path to data.
         sessions (List[int]): list of sessions to consider.
             Defaults to list(range(10)).
         framestack (int): Number of frames to stack for each observation.
@@ -63,22 +151,19 @@ class MarioExpertTransitions(Dataset):
             Defaults to True.
         screen_size (int): Size of screen. Defaults to 84.
         device (str): device for torch tensors. Defaults to cpu.
-        render (bool, optional): Whether to render the data while loading
-            Defaults to False.
         length (int, optional): Number of actions to consider.
             Defaults to None which implies complete dataset to be loaded
     """
 
     def __init__(
         self,
-        data_path: Optional[str] = None,
-        sessions: Optional[List[int]] = list(range(10)),
+        data_path: str,
+        sessions: List[int] = list(range(10)),
         framestack: int = 4,
         grayscale: bool = True,
         max_pool: bool = True,
         screen_size: int = 84,
         device: str = "cpu",
-        render: bool = False,
         length: Optional[int] = None,
     ):
         self.framestack = framestack
@@ -89,46 +174,46 @@ class MarioExpertTransitions(Dataset):
 
         self.obs = None
         self.a = None
+        self._load_multiple_sessions(data_path, sessions, length)
 
-        if data_path is not None:
-            path = Path(data_path)
-            if path.suffix == ".json":
-                self.load_single_session(data_path, render, length)
-            elif path.is_dir():
-                self.load_multiple_sessions(data_path, sessions, render, length)
-            else:
-                raise ValueError("Invalid data path specified")
-
-    def load_single_session(
-        self, session_path: str, render: bool = False, length: int = None
+    def _load_multiple_sessions(
+        self,
+        data_dir: str,
+        sessions: List[int] = list(range(10)),
+        length: Optional[int] = None,
     ):
+        """Load multiple sessions into the dataset
+
+        Args:
+            session_path (str): Path to directory of participants data
+            sessions (List[int]): list of sessions to consider.
+                Defaults to list(range(10)).
+            length (int, optional): Number of actions to consider.
+                Defaults to None which implies complete dataset to be loaded
+        """
+        data_dir = Path(data_dir)
+        for i in sessions:
+            session_path = data_dir.joinpath(f"participant_{i}")
+            if not session_path.exists():
+                warnings.warn(f"{session_path.absolute()} does not exist! Skipping.")
+                continue
+            self._load_single_session(session_path, length)
+
+    def _load_single_session(self, session_path: str, length: int = None):
         """Load a session into the dataset
 
         Args:
             session_path (str): path to data
-            render (bool, optional): Whether to render the data while loading.
-                Defaults to False.
             length (int, optional): Number of actions to consider.
                 Defaults to None which implies complete dataset to be loaded
         """
 
         print(f"Loading data from {session_path} ...", end=" ")
 
-        with open(session_path) as json_file:
+        session_path = Path(session_path)
+        session_data_path = session_path.joinpath("data.json")
+        with open(session_data_path) as json_file:
             data = json.load(json_file)
-
-        first_world = "SuperMarioBros-1-1-v0"
-        env = gym_super_mario_bros.make(first_world)
-
-        next_state = env.reset()
-
-        world = 1
-        stage = 1
-        stage_num = 0
-
-        frame_number = 1
-
-        steps = 0
 
         observations = [
             torch.zeros(self.screen_size, self.screen_size, 3)
@@ -142,21 +227,19 @@ class MarioExpertTransitions(Dataset):
         actions = []
 
         for i, action in enumerate(data["obs"]):
-            if i >= length:
-                break
+            if length is not None:
+                if i >= length:
+                    break
 
-            if render:
-                env.render()
-
-            next_state = cv2.resize(
-                next_state,
-                (self.screen_size, self.screen_size),
-                interpolation=cv2.INTER_AREA,
-            )
-            obs = torch.tensor(next_state.copy()).to(self.device).to(torch.float)
-            observations.append(obs)
-            next_state, reward, done, info = env.step(action)
             a = torch.tensor(action).to(self.device)
+            actions.append(a)
+
+            obs = cv2.imread(str(session_path.joinpath(f"frames/frame_{i}.png")))
+            obs = cv2.resize(
+                obs, (self.screen_size, self.screen_size), interpolation=cv2.INTER_AREA,
+            )
+            obs = torch.tensor(obs.copy()).to(self.device).to(torch.float)
+            observations.append(obs)
 
             if self.max_pool:
                 max_pooled_obs.append(torch.max(observations[-1], observations[-2]))
@@ -170,31 +253,6 @@ class MarioExpertTransitions(Dataset):
                     frame_stacked_obs.append(
                         torch.stack(observations[-self.framestack :])
                     )
-
-            actions.append(a)
-            steps += 1
-
-            is_first = True
-            frame_number += 1
-
-            if info["flag_get"]:
-                finish = True
-
-            if done:
-                done = False
-                end = time.time()
-
-                if finish or steps >= 16000:
-                    stage_num += 1
-                    world, stage, new_world = make_next_stage(world, stage, stage_num)
-                    env.close()
-                    env = gym_super_mario_bros.make(new_world)
-                    finish = False
-                    steps = 0
-
-                next_state = env.reset()
-
-        actions = torch.stack(actions)
 
         if self.max_pool:
             observations = torch.stack(max_pooled_framestaked_obs)
@@ -213,33 +271,6 @@ class MarioExpertTransitions(Dataset):
             self.a = torch.cat([self.a, actions])
 
         print(f"Complete!")
-
-    def load_multiple_sessions(
-        self,
-        data_dir: str,
-        sessions: List[int] = list(range(10)),
-        render: bool = False,
-        length: Optional[int] = None,
-    ):
-        """Load multiple sessions into the dataset
-
-        Args:
-            session_path (str): Path to directory of participants data
-            sessions (List[int]): list of sessions to consider.
-                Defaults to list(range(10)).
-            render (bool, optional): Whether to render the data while loading.
-                Defaults to False.
-            length (int, optional): Number of actions to consider.
-                Defaults to None which implies complete dataset to be loaded
-        """
-        data_dir = Path(data_dir)
-        for i in sessions:
-            session_path = data_dir.joinpath(
-                f"participant_{i}/participant_{i}_session.json"
-            )
-            if not session_path.exists():
-                raise FileNotFoundError(f"{session_path.absolute()} does not exist")
-            self.load_single_session(session_path, render, length)
 
     def __len__(self) -> int:
         """Get length of dataset"""

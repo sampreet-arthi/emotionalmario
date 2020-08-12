@@ -15,12 +15,7 @@ class MarioPPO(PPO1):
                 self.env.render()
 
             self.rollout.add(
-                state,
-                action,
-                reward,
-                done,
-                value.detach(),
-                old_log_prob.detach(),
+                state, action, reward, done, value.detach(), old_log_prob.detach(),
             )
 
             state = next_state

@@ -1,4 +1,5 @@
 from typing import List
+import os
 
 import torch
 import torch.nn.functional as F
@@ -6,11 +7,11 @@ from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import Dataset
 
 from mario.expert import MarioExpertTransitions
-from mario.trainer import Trainer
+from mario.trainer import MarioTrainer
 from mario.utils import mask_raw_actions
 
 
-class SupervisedTrainer(Trainer):
+class SupervisedTrainer(MarioTrainer):
     def __init__(
         self,
         agent,
@@ -20,9 +21,9 @@ class SupervisedTrainer(Trainer):
         embedding: bool = False,
         shuffle: bool = True,
         log_mode=["stdout"],
-        render: bool = False,
         device="cpu",
         length=None,
+        **kwargs
     ):
         """Trainer for behavior cloning of dataset into agent
 
@@ -36,25 +37,22 @@ class SupervisedTrainer(Trainer):
                 action space. Defaults to False.
             shuffle (bool): Whether to shuffle dataset. Defaults to true
             log_mode (list, optional): Mode to log progress. Defaults to ["stdout"].
-            render (bool, optional): Whether to render while loading dataset. 
-                Applicable only if path given for dataset. Defaults to False.
             device (str, optional): Device . Defaults to "cpu".
             length (int, optional): Number of actions to consider.
                 Applicable only if path given for dataset.
                 Defaults to None which implies complete dataset to be loaded
         """
         super(SupervisedTrainer, self).__init__(
-            agent, env, log_mode, "epoch", device=device, render=render
+            agent, env, log_mode, "epoch", device=device, **kwargs
         )
         self.agent = agent
 
-        if isinstance(dataset, str):
+        if isinstance(dataset, (str, os.PathLike)):
             self.dataset = MarioExpertTransitions(
                 data_path=dataset,
                 screen_size=84,
                 grayscale=True,
                 device=device,
-                render=render,
                 length=length,
             )
         elif isinstance(dataset, Dataset):

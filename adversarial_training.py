@@ -7,11 +7,11 @@ from nes_py.wrappers import JoypadSpace
 import torch
 
 from genrl import DQN
-from mario.supervised import SupervisedTrainer
+from mario.adversarial import AdversariaTrainer
 from mario.wrapper import MarioEnv
 
 argument_parser = argparse.ArgumentParser(
-    description="A script used to clone expert data into agent."
+    description="A script used to train agent adversarial on a dataset."
 )
 argument_parser.add_argument("-i", "--input-path", type=str, required=True)
 argument_parser.add_argument("-e", "--epochs", type=int, default=10)
@@ -34,7 +34,7 @@ env = gym_super_mario_bros.make("SuperMarioBros-v0")
 env = JoypadSpace(env, SIMPLE_MOVEMENT)
 env = MarioEnv(env)
 agent = DQN("cnn", env, replay_size=100000, epsilon_decay=100000)
-trainer = SupervisedTrainer(
+trainer = AdversariaTrainer(
     agent=agent,
     env=env,
     dataset=args.input_path,
