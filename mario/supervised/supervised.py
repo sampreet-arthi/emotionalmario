@@ -6,7 +6,7 @@ import torch.nn.functional as F
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import Dataset
 
-from mario.expert import MarioExpertTransitions
+from mario.supervised.expert import MarioExpertTransitions
 from mario.base.trainer import MarioTrainer
 from mario.base.utils import mask_raw_actions
 

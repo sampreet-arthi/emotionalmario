@@ -1,10 +1,12 @@
 import argparse
 from pathlib import Path
 
-from mario.expert import process_single_session, process_multiple_sessions
+from mario.supervised.expert import (
+    process_single_session,
+    process_multiple_sessions,
+)
 
 if __name__ == "__main__":
-
     argument_parser = argparse.ArgumentParser(
         description="A script used to replay the game session and store the frames."
     )
@@ -21,8 +23,12 @@ if __name__ == "__main__":
 
     path = Path(data_path)
     if path.suffix == ".json":
-        process_single_session(data_path, output_path, args.render, args.length)
+        process_single_session(
+            data_path, output_path, args.render, args.length
+        )
     elif path.is_dir():
-        process_multiple_sessions(data_path, output_path, args.render, args.length)
+        process_multiple_sessions(
+            data_path, output_path, args.render, args.length
+        )
     else:
         raise ValueError("Invalid data path specified")

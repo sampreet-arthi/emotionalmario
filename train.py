@@ -4,11 +4,16 @@ import gym_super_mario_bros
 from gym_super_mario_bros.actions import SIMPLE_MOVEMENT
 from nes_py.wrappers import JoypadSpace
 
-from genrl.deep.agents.dqn import DQN, DoubleDQN, DuelingDQN, PrioritizedReplayDQN
+from genrl.deep.agents.dqn import (
+    DQN,
+    DoubleDQN,
+    DuelingDQN,
+    PrioritizedReplayDQN,
+)
 from genrl.deep.agents import PPO1, A2C
 
-from mario.agents import MarioPPO
-from mario.mdp_trainer import MDPTrainer
+from mario.base.agents import MarioPPO
+from mario.base.mdp_trainer import MDPTrainer
 from mario.base.wrapper import MarioEnv
 from mario.base.buffers import MarioRollout
 

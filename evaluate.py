@@ -4,10 +4,15 @@ import gym_super_mario_bros
 from gym_super_mario_bros.actions import SIMPLE_MOVEMENT
 from nes_py.wrappers import JoypadSpace
 
-from genrl.deep.agents.dqn import DQN, DoubleDQN, DuelingDQN, PrioritizedReplayDQN
+from genrl.deep.agents.dqn import (
+    DQN,
+    DoubleDQN,
+    DuelingDQN,
+    PrioritizedReplayDQN,
+)
 from genrl.deep.agents import A2C
 
-from mario.agents import MarioPPO
+from mario.base.agents import MarioPPO
 from mario.base.trainer import MarioTrainer
 from mario.base.wrapper import MarioEnv
 from mario.base.buffers import MarioRollout
@@ -18,9 +23,13 @@ if __name__ == "__main__":
         description="A script used to clone expert data into agent."
     )
     argument_parser.add_argument("-a", "--agent", type=str, default="dqn")
-    argument_parser.add_argument("-e", "--evaluate-episodes", type=int, default=20)
+    argument_parser.add_argument(
+        "-e", "--evaluate-episodes", type=int, default=20
+    )
     argument_parser.add_argument("-p", "--path", type=str, default=None)
-    argument_parser.add_argument("-t", "--max_ep_len", type=int, default=999999)
+    argument_parser.add_argument(
+        "-t", "--max_ep_len", type=int, default=999999
+    )
     argument_parser.add_argument("-r", "--render", action="store_true")
     args = argument_parser.parse_args()
 

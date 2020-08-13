@@ -7,7 +7,7 @@ from nes_py.wrappers import JoypadSpace
 import torch
 
 from genrl import DQN
-from mario.supervised import SupervisedTrainer
+from mario.supervised.supervised import SupervisedTrainer
 from mario.base.wrapper import MarioEnv
 
 argument_parser = argparse.ArgumentParser(
