@@ -26,7 +26,7 @@ if args.enable_cuda:
         device = "cuda"
     else:
         device = "cpu"
-        warnings.warn("cuda is ot available. Defaulting to cpu")
+        warnings.warn("cuda is not available. Defaulting to cpu")
 else:
     device = "cpu"
 

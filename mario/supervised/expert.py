@@ -290,7 +290,7 @@ class MarioExpertTransitions(Dataset):
 
     def __len__(self) -> int:
         """Get length of dataset"""
-        return len(self.obs) if self.obs is not None else 1
+        return len(self.obs)
 
     def __getitem__(self, index: int) -> Tuple[torch.Tensor, torch.Tensor]:
         """Get transition tuple at specific element"""

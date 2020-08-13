@@ -133,3 +133,9 @@ dmypy.json
 
 # Checkpoint files
 *.pt
+
+# Log files
+*logs/
+
+# Image frames
+*.png
