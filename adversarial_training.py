@@ -8,7 +8,7 @@ import torch
 
 from genrl import DQN
 from mario.adversarial import AdversariaTrainer
-from mario.wrapper import MarioEnv
+from mario.base.wrapper import MarioEnv
 
 argument_parser = argparse.ArgumentParser(
     description="A script used to train agent adversarial on a dataset."

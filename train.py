@@ -9,8 +9,8 @@ from genrl.deep.agents import PPO1, A2C
 
 from mario.agents import MarioPPO
 from mario.mdp_trainer import MDPTrainer
-from mario.wrapper import MarioEnv
-from mario.buffers import MarioRollout
+from mario.base.wrapper import MarioEnv
+from mario.base.buffers import MarioRollout
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-from genrl import PPO1, A2C
+from genrl import PPO1
 
 
 class MarioPPO(PPO1):

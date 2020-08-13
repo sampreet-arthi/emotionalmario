@@ -8,7 +8,7 @@ import torch
 
 from genrl import DQN
 from mario.supervised import SupervisedTrainer
-from mario.wrapper import MarioEnv
+from mario.base.wrapper import MarioEnv
 
 argument_parser = argparse.ArgumentParser(
     description="A script used to clone expert data into agent."
@@ -22,7 +22,7 @@ argument_parser.add_argument("--enable-cuda", action="store_true")
 args = argument_parser.parse_args()
 
 if args.enable_cuda:
-    if torch.cuda_is_available():
+    if torch.cuda.is_available():
         device = "cuda"
     else:
         device = "cpu"

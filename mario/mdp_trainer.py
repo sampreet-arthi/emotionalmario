@@ -1,6 +1,6 @@
 from genrl.deep.common.utils import safe_mean
 
-from mario.trainer import MarioTrainer
+from mario.base.trainer import MarioTrainer
 
 
 class MDPTrainer(MarioTrainer):

@@ -9,8 +9,8 @@ from torch.utils.data import DataLoader, Dataset
 from genrl.deep.common.utils import get_env_properties, cnn
 
 from mario.expert import MarioExpertTransitions
-from mario.trainer import MarioTrainer
-from mario.utils import mask_raw_actions
+from mario.base.trainer import MarioTrainer
+from mario.base.utils import mask_raw_actions
 
 
 class Discriminator(nn.Module):
