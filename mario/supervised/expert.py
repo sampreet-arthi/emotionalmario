@@ -47,9 +47,7 @@ def make_next_stage(world, stage, num):
     return world, stage, "SuperMarioBros-%s-%s-v0" % (str(world), str(stage))
 
 
-def process_single_session(
-    session_path, output_path=None, render=False, length=None
-):
+def process_single_session(session_path, output_path=None, render=False, length=None):
 
     with open(session_path) as json_file:
         data = json.load(json_file)
@@ -85,9 +83,7 @@ def process_single_session(
 
         if output_path is not None:
             cvt_state = cv2.cvtColor(next_state, cv2.COLOR_BGR2RGB)
-            impath = str(
-                output_path.joinpath(f"frames/frame_{frame_number}.png")
-            )
+            impath = str(output_path.joinpath(f"frames/frame_{frame_number}.png"))
             cv2.imwrite(impath, cvt_state)
 
         finish = False
@@ -101,9 +97,7 @@ def process_single_session(
 
             if finish or steps >= 16000:
                 stage_num += 1
-                world, stage, new_world = make_next_stage(
-                    world, stage, stage_num
-                )
+                world, stage, new_world = make_next_stage(world, stage, stage_num)
                 env.close()
                 env = gym_super_mario_bros.make(new_world)
                 finish = False
@@ -138,9 +132,7 @@ def process_multiple_sessions(
         )
         output_path = Path(output_path).joinpath(f"participant_{i}")
         if not session_path.exists():
-            raise FileNotFoundError(
-                f"{session_path.absolute()} does not exist"
-            )
+            raise FileNotFoundError(f"{session_path.absolute()} does not exist")
         process_single_session(session_path, output_path, render, length)
 
 
@@ -203,9 +195,7 @@ class MarioExpertTransitions(Dataset):
         for i in sessions:
             session_path = data_dir.joinpath(f"participant_{i}")
             if not session_path.exists():
-                warnings.warn(
-                    f"{session_path.absolute()} does not exist! Skipping."
-                )
+                warnings.warn(f"{session_path.absolute()} does not exist! Skipping.")
                 continue
             self._load_single_session(session_path, length)
 
@@ -244,21 +234,15 @@ class MarioExpertTransitions(Dataset):
             a = torch.tensor(action).to(self.device)
             actions.append(a)
 
-            obs = cv2.imread(
-                str(session_path.joinpath(f"frames/frame_{i}.png"))
-            )
+            obs = cv2.imread(str(session_path.joinpath(f"frames/frame_{i}.png")))
             obs = cv2.resize(
-                obs,
-                (self.screen_size, self.screen_size),
-                interpolation=cv2.INTER_AREA,
+                obs, (self.screen_size, self.screen_size), interpolation=cv2.INTER_AREA,
             )
             obs = torch.tensor(obs.copy()).to(self.device).to(torch.float)
             observations.append(obs)
 
             if self.max_pool:
-                max_pooled_obs.append(
-                    torch.max(observations[-1], observations[-2])
-                )
+                max_pooled_obs.append(torch.max(observations[-1], observations[-2]))
 
             if len(max_pooled_obs) >= self.framestack:
                 if self.max_pool:

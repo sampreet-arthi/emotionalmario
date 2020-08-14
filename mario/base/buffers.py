@@ -9,9 +9,7 @@ class MarioRollout(RolloutBuffer):
     def __init__(
         self, buffer_size, env, device="cpu", gae_lambda=1, gamma=0.99,
     ):
-        super(MarioRollout, self).__init__(
-            buffer_size, env, device, gae_lambda, gamma
-        )
+        super(MarioRollout, self).__init__(buffer_size, env, device, gae_lambda, gamma)
 
     def reset(self):
         self.observations = np.zeros(
@@ -51,7 +49,5 @@ class MarioRollout(RolloutBuffer):
 
         start_idx = 0
         while start_idx < self.buffer_size:
-            yield self._get_samples(
-                indices[start_idx : start_idx + batch_size]
-            )
+            yield self._get_samples(indices[start_idx : start_idx + batch_size])
             start_idx += batch_size

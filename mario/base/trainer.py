@@ -16,9 +16,7 @@ class MarioTrainer(Trainer):
             state = self.env.reset()
             for timestep in range(self.max_ep_len):
                 if self.off_policy:
-                    action = self.agent.select_action(
-                        state, deterministic=True
-                    )
+                    action = self.agent.select_action(state, deterministic=True)
                 else:
                     action, _, _ = self.agent.select_action(state)
 

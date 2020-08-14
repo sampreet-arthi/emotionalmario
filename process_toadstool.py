@@ -24,11 +24,17 @@ if __name__ == "__main__":
     path = Path(data_path)
     if path.suffix == ".json":
         process_single_session(
-            data_path, output_path, args.render, args.length
+            session_path=data_path,
+            output_path=output_path,
+            render=args.render,
+            length=args.length,
         )
     elif path.is_dir():
         process_multiple_sessions(
-            data_path, output_path, args.render, args.length
+            data_dir=data_path,
+            output_path=output_path,
+            render=args.render,
+            length=args.length,
         )
     else:
         raise ValueError("Invalid data path specified")

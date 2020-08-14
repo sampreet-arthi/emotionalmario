@@ -7,9 +7,7 @@ class MDPTrainer(MarioTrainer):
     def __init__(self, *args, **kwargs):
         super(MDPTrainer, self).__init__(*args, **kwargs)
 
-        self.start_update = (
-            kwargs["start_update"] if "start_update" in kwargs else 1000
-        )
+        self.start_update = kwargs["start_update"] if "start_update" in kwargs else 1000
         self.update_interval = (
             kwargs["update_interval"] if "update_interval" in kwargs else 60
         )

@@ -103,9 +103,7 @@ class AdversariaTrainer(MarioTrainer):
         data = DataLoader(self.dataset, batch_size, self.shuffle)
 
         policy_optim = torch.optim.Adam(self.agent.model.parameters(), lr=lr)
-        discriminator_optim = torch.optim.Adam(
-            self.discriminator.parameters(), lr=lr
-        )
+        discriminator_optim = torch.optim.Adam(self.discriminator.parameters(), lr=lr)
 
         for e in range(epochs):
             dataiter = iter(data)
@@ -119,16 +117,12 @@ class AdversariaTrainer(MarioTrainer):
                 s, _ = dataiter.next()
 
                 if self.possible_actions is not None:
-                    target_actions = mask_raw_actions(
-                        exp_a, self.possible_actions
-                    )
+                    target_actions = mask_raw_actions(exp_a, self.possible_actions)
                     target_actions = F.one_hot(
                         target_actions, num_classes=len(self.possible_actions)
                     ).to(torch.float32)
                 else:
-                    target_actions = F.one_hot(exp_a, num_classes=256).to(
-                        torch.float32
-                    )
+                    target_actions = F.one_hot(exp_a, num_classes=256).to(torch.float32)
 
                 action_pred = self.agent.model(s)
 
@@ -136,11 +130,9 @@ class AdversariaTrainer(MarioTrainer):
                 exp_label = self.discriminator(exp_s, target_actions)
                 model_label = self.discriminator(s, action_pred.detach())
                 discriminator_loss = F.binary_cross_entropy(
-                    exp_label,
-                    torch.ones(exp_label.shape[0], 1).to(self.device),
+                    exp_label, torch.ones(exp_label.shape[0], 1).to(self.device),
                 ) + F.binary_cross_entropy(
-                    model_label,
-                    torch.zeros(model_label.shape[0], 1).to(self.device),
+                    model_label, torch.zeros(model_label.shape[0], 1).to(self.device),
                 )
                 discriminator_optim.zero_grad()
                 discriminator_loss.backward()
