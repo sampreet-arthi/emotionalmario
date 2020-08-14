@@ -10,6 +10,12 @@ Test code for the Emotional Mario challenge of Media Eval 2020
 python process_toadstool.py -i toadstool/toadstool/participants/ -o toadstool/processed/
 ```
 
+For processing an individual `json` file of actions, the following format can be followed. Not that the output path must end in `participant_x` with `x` being the participat number.
+
+```bash
+python process_toadstool.py -i toadstool/toadstool/participants/participant_0/participant_0_session.json -o toadstool/processed/participant_0/
+```
+
 ## Behavior Cloning
 
 Behavior cloning involves training an agent on a datset of (observation, action) tuples taken from an expert. The `behavior_cloning.py` script can be used to train an agent on Toadstool. For example the following command will train the agent from data stores in a given directory for 100 epochs.
