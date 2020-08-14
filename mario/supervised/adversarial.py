@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader, Dataset
 
 from genrl.deep.common.utils import get_env_properties, cnn
 
-from mario.expert import MarioExpertTransitions
+from mario.supervised.expert import MarioExpertTransitions
 from mario.base.trainer import MarioTrainer
 from mario.base.utils import mask_raw_actions
 
